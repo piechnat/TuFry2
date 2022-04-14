@@ -154,7 +154,7 @@ div.lesson button:active {
   background-color: #89a;
 }
 
-div.lesson textarea.subject {
+div.lesson textarea.topic {
   display: block;
   width: 100%;
   padding: 0.2em 0.4em 0.3em 0.4em;
@@ -168,7 +168,7 @@ div.lesson textarea.subject {
   border-top-right-radius: 0;
 }
 
-div.lesson textarea.subject:focus,
+div.lesson textarea.topic:focus,
 div.lesson textarea.manual-focus {
   border-color: #63859d;
   box-shadow: 1px 0 0 0 #f47d2f, 0 1px 0 0 #f47d2f, -1px 0 0 0 #f47d2f;
@@ -193,8 +193,8 @@ div.lesson .paste-icon:active {
   transition: none;
 }
 
-textarea.subject:focus + .paste-icon,
-textarea.subject:not(:placeholder-shown) + .paste-icon {
+textarea.topic:focus + .paste-icon,
+textarea.topic:not(:placeholder-shown) + .paste-icon {
   opacity: 0;
   visibility: hidden;
 }

@@ -72,10 +72,10 @@ self.updateLoginForm = () => {
 self.openLessonInfo = ($jqOwner, lesson) => {
   const DATA_ID = "lesson-info";
   const lessonInfo = $jqOwner.data(DATA_ID);
-  const loaderId = DATA_ID + "-" + lesson.subjectPrms[0];
+  const loaderId = DATA_ID + "-" + lesson.topicPrms[0];
   const D_O = '<div style="text-align: left">',
     D_C = "</div>";
-  const focus = () => $jqOwner.focus();
+  const focus = () => $jqOwner.trigger("focus");
   if (lessonInfo) {
     showMsg(D_O + lessonInfo + D_C).then(focus);
   } else {
@@ -85,7 +85,7 @@ self.openLessonInfo = ($jqOwner, lesson) => {
         '"><div class="lds-dual-ring"></div>' +
         "<p>Trwa ładowanie informacji o&nbsp;przedmiocie...</p></div>"
     ).then(focus);
-    rfCall("getLessonInfo", lesson.subjectPrms[0])
+    rfCall("getLessonInfo", lesson.topicPrms[0])
       .then((res) => {
         $jqOwner.data(DATA_ID, res);
         return res;
@@ -97,15 +97,15 @@ self.openLessonInfo = ($jqOwner, lesson) => {
   }
 };
 
-self.openLastSubjects = ($jqOwner, lesson) => {
-  const DATA_ID = "last-subjects";
-  const lastSubjects = $jqOwner.data(DATA_ID);
-  const loaderId = DATA_ID + "-" + lesson.subjectPrms[0];
+self.openLastTopics = ($jqOwner, lesson) => {
+  const DATA_ID = "last-topics";
+  const lastTopics = $jqOwner.data(DATA_ID);
+  const loaderId = DATA_ID + "-" + lesson.topicPrms[0];
   const D_O = '<div style="text-align: left">',
     D_C = "</div>";
-  const focus = () => $jqOwner.focus();
-  if (lastSubjects) {
-    showMsg(D_O + lastSubjects + D_C).then(focus);
+  const focus = () => $jqOwner.trigger("focus");
+  if (lastTopics) {
+    showMsg(D_O + lastTopics + D_C).then(focus);
   } else {
     showMsg(
       '<div id="' +
@@ -113,7 +113,7 @@ self.openLastSubjects = ($jqOwner, lesson) => {
         '"><div class="lds-dual-ring"></div>' +
         "<p>Trwa ładowanie ostatnich tematów...</p></div>"
     ).then(focus);
-    rfCall("getLastSubjects", lesson.subjectPrms[0], lesson.timePrms[0])
+    rfCall("getLastTopics", lesson.topicPrms[0], lesson.timePrms[0])
       .then((res) => {
         $jqOwner.data(DATA_ID, res);
         return res;

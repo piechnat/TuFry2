@@ -5,7 +5,7 @@ import "./style.css";
 import { dateFmt, nop, session } from "./modules/utils";
 import { showMsg } from "./modules/dialogs";
 import { App } from "./modules/App";
-import { SubjectBase } from "./modules/SubjectBase";
+import { TopicBase } from "./modules/TopicBase";
 import { Sound } from "./modules/Sound";
 import { LessonHelper } from "./modules/LessonHelper";
 import { DayView } from "./modules/DayView";
@@ -57,7 +57,6 @@ $("form.open-day button.forgot").on("click", () => {
   Sound.pop();
   App.logout();
   session.username = session.password = null;
-  SubjectBase.setLastAccess(0);
   $("form.open-day input.username, form.open-day input.password").val("");
   App.updateLoginForm();
 });
@@ -66,12 +65,11 @@ $("form.open-day button.logout").on("click", () => {
   DayView.ifAllowEmpty("Niezapisane zmiany zostaną utracone! Czy na pewno chcesz się wylogować?")
     .then((wasEmpty) => {
       if (!wasEmpty) {
-        // return SubjectBase.synchronize();
+        // return TopicBase.synchronize();
       }
     })
     .then(() => {
       App.logout();
-      SubjectBase.setLastAccess(0);
       App.updateLoginForm();
     })
     .catch(nop);
@@ -112,13 +110,13 @@ $("form.save-day button.close").on("click", () => {
   DayView.ifAllowEmpty("Niezapisane zmiany zostaną utracone! Czy na pewno chcesz zamknąć dzień?")
     .then((wasEmpty) => {
       if (!wasEmpty) {
-        // return SubjectBase.synchronize();
+        // return TopicBase.synchronize();
       }
     })
     .catch(nop);
 });
 
-$("form.save-day button.subject-base-remove").on("click", SubjectBase.removeDialog);
+$("form.save-day button.topic-base-remove").on("click", TopicBase.removeDialog);
 
 function onLoadData(str) {
   const obj = {};
@@ -133,8 +131,7 @@ function onLoadData(str) {
     App.showAboutInfo();
   }
   Object.assign(session, obj.session);
-  SubjectBase.setAll(obj.subjects);
-  SubjectBase.setSyncData(obj.syncData);
+  TopicBase.setAll(obj.topics);
   if (typeof obj.soundEnabled === "boolean") {
     Sound.enabled = obj.soundEnabled;
   }
@@ -172,8 +169,7 @@ function onSaveData() {
     session: session,
     lastDay: new Date().getDate(),
     lessons: LessonHelper.collectLessons(),
-    subjects: SubjectBase.getAll(),
-    syncData: SubjectBase.getSyncData(),
+    topics: TopicBase.getAll(),
     soundEnabled: Sound.enabled,
   });
   localStorage.setItem("DATA", str);

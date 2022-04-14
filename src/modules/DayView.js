@@ -3,7 +3,7 @@ import { App } from "./App";
 import { showMsg } from "./dialogs";
 import { LessonHelper } from "./LessonHelper";
 import { Sound } from "./Sound";
-// import { SubjectBase } from "./SubjectBase";
+// import { TopicBase } from "./TopicBase";
 import { debug, session, rfCall } from "./utils";
 
 const self = {},
@@ -48,7 +48,7 @@ self.removeElement = (htmlElm) => {
     .slideUp("normal", function () {
       $(this).remove();
       if (self.close(true)) {
-        // SubjectBase.synchronize();
+        // TopicBase.synchronize();
       }
     });
 };
@@ -85,8 +85,8 @@ function uploadLessons(lessons) {
       const lessonsPart = lessons.splice(0, LESSONS_CHUNK_SIZE);
       rfCall("setDayLessons", lessonsPart)
         .then((res) => {
-          res.forEach((subjectVal) => {
-            self.removeElement($("input[value='" + subjectVal + "']"));
+          res.forEach((topicVal) => {
+            self.removeElement($("input[value='" + topicVal + "']"));
             remainingLessons--;
           });
         })
@@ -110,7 +110,7 @@ self.download = () => {
         throw new Error("We wskazanym dniu nie ma zajęć!");
       }
       closeFn = showMsg("Trwa pobieranie tematów i&nbsp;frekwencji...", null);
-      // SubjectBase.synchronize(true);
+      // TopicBase.synchronize(true);
       self.open();
       return downloadLessons(res);
     })
@@ -140,7 +140,7 @@ self.upload = (lessons) => {
       if (session.subjectField) {
         return uploadLessons(lessons);
       }
-      return rfCall("getSubjectField", lessons[0].subjectPrms).then((res) => {
+      return rfCall("getSubjectField", lessons[0].topicPrms).then((res) => {
         session.subjectField = res;
         return uploadLessons(lessons);
       });
