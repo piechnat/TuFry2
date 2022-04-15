@@ -118,7 +118,8 @@ function onButtonAttendanceClick() {
 function onTopicMenuClick() {
   const I_O = ' <i class="condensed muted">',
     I_C = "</i>";
-  const $textarea = $(this).closest("div.lesson").find("textarea");
+  const $lesson = $(this).closest("div.lesson");
+  const $textarea = $lesson.find("textarea");
   const topic = $textarea.val(),
     prevTopic = $textarea.data("prev-topic");
   const canCopy = topic.length && topic !== clipboard,
@@ -142,7 +143,7 @@ function onTopicMenuClick() {
         break;
       case 2:
         if (canAdd) {
-          TopicBase.add(topic);
+          TopicBase.add(topic, $lesson.find("[name='subject']").val());
         }
         break;
       case 3:
@@ -185,8 +186,8 @@ function getLessonFromElement(htmlElm) {
     topicPrms: $("[name='topicPrms']", htmlElm).val().split("|"),
     timePrms: $("[name='timePrms']", htmlElm).val().split("|"),
     time: $("[name='time']", htmlElm).val(),
-    studentName: $("[name='studentName']", htmlElm).val(),
-    name: $("[name='name']", htmlElm).val(),
+    student: $("[name='student']", htmlElm).val(),
+    subject: $("[name='subject']", htmlElm).val(),
     attendPrms: $("[name='attendPrms']", htmlElm).val().split("|"),
     attendance: $("[name='attendance']", htmlElm).val(),
     topic: $("[name='topic']", htmlElm).val(),
@@ -220,9 +221,9 @@ function _buildNavigationBar(lesson) {
     $("<button/>", { type: "button", class: "name bg-white" })
       .append([
         $("<div>", { class: "menu-icon" }).html("<i class='bx bx-menu lg' ></i>"),
-        $("<b/>").text(lesson.studentName),
+        $("<b/>").text(lesson.student),
         document.createTextNode(" "),
-        $("<span/>", { class: "smaller" }).text(lesson.name),
+        $("<span/>", { class: "smaller" }).text(lesson.subject),
       ])
       .on("click", onTopicMenuClick),
   ]);
@@ -235,8 +236,8 @@ self.buildElements = function (lessons) {
         $("<input/>", { type: "hidden", name: "topicPrms", value: lesson.topicPrms.join("|") }),
         $("<input/>", { type: "hidden", name: "timePrms", value: lesson.timePrms.join("|") }),
         $("<input/>", { type: "hidden", name: "time", value: lesson.time }),
-        $("<input/>", { type: "hidden", name: "studentName", value: lesson.studentName }),
-        $("<input/>", { type: "hidden", name: "name", value: lesson.name }),
+        $("<input/>", { type: "hidden", name: "student", value: lesson.student }),
+        $("<input/>", { type: "hidden", name: "subject", value: lesson.subject }),
         $("<input/>", { type: "hidden", name: "attendPrms", value: lesson.attendPrms.join("|") }),
         _buildNavigationBar(lesson),
         $("<textarea/>", {

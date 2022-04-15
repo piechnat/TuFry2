@@ -63,11 +63,6 @@ $("form.open-day button.forgot").on("click", () => {
 
 $("form.open-day button.logout").on("click", () => {
   DayView.ifAllowEmpty("Niezapisane zmiany zostaną utracone! Czy na pewno chcesz się wylogować?")
-    .then((wasEmpty) => {
-      if (!wasEmpty) {
-        // return TopicBase.synchronize();
-      }
-    })
     .then(() => {
       App.logout();
       App.updateLoginForm();
@@ -107,13 +102,9 @@ $("form.save-day button.save").on("click", () => {
 });
 
 $("form.save-day button.close").on("click", () => {
-  DayView.ifAllowEmpty("Niezapisane zmiany zostaną utracone! Czy na pewno chcesz zamknąć dzień?")
-    .then((wasEmpty) => {
-      if (!wasEmpty) {
-        // return TopicBase.synchronize();
-      }
-    })
-    .catch(nop);
+  DayView.ifAllowEmpty(
+    "Niezapisane zmiany zostaną utracone! Czy na pewno chcesz zamknąć dzień?"
+  ).catch(nop);
 });
 
 $("form.save-day button.topic-base-remove").on("click", TopicBase.removeDialog);
@@ -131,7 +122,7 @@ function onLoadData(str) {
     App.showAboutInfo();
   }
   Object.assign(session, obj.session);
-  TopicBase.setAll(obj.topics);
+  TopicBase.setItems(obj.topics);
   if (typeof obj.soundEnabled === "boolean") {
     Sound.enabled = obj.soundEnabled;
   }
@@ -169,7 +160,7 @@ function onSaveData() {
     session: session,
     lastDay: new Date().getDate(),
     lessons: LessonHelper.collectLessons(),
-    topics: TopicBase.getAll(),
+    topics: TopicBase.getItems(),
     soundEnabled: Sound.enabled,
   });
   localStorage.setItem("DATA", str);

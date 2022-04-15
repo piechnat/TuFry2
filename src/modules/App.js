@@ -1,6 +1,7 @@
 import $ from "jquery";
 import { showMsg } from "./dialogs";
 import { Sound } from "./Sound";
+import { TopicBase } from "./TopicBase";
 import { session, rfCall } from "./utils";
 
 const self = {};
@@ -18,6 +19,7 @@ self.logout = () => {
   session.cookies = {};
   session.loggedIn = undefined;
   session.subjectField = null;
+  TopicBase.setItems([]);
 };
 
 self.showAboutInfo = () => {

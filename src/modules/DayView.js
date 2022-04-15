@@ -3,7 +3,7 @@ import { App } from "./App";
 import { showMsg } from "./dialogs";
 import { LessonHelper } from "./LessonHelper";
 import { Sound } from "./Sound";
-// import { TopicBase } from "./TopicBase";
+import { TopicBase } from "./TopicBase";
 import { debug, session, rfCall } from "./utils";
 
 const self = {},
@@ -47,9 +47,7 @@ self.removeElement = (htmlElm) => {
     .closest("div.lesson")
     .slideUp("normal", function () {
       $(this).remove();
-      if (self.close(true)) {
-        // TopicBase.synchronize();
-      }
+      self.close(true);
     });
 };
 
@@ -101,6 +99,7 @@ function uploadLessons(lessons) {
 }
 
 self.download = () => {
+  const wasLoggedIn = App.loggedIn();
   let closeFn = showMsg("Trwa pobieranie listy uczniów...", null);
   rfCall("getDayLessons")
     .then((res) => {
@@ -110,7 +109,7 @@ self.download = () => {
         throw new Error("We wskazanym dniu nie ma zajęć!");
       }
       closeFn = showMsg("Trwa pobieranie tematów i&nbsp;frekwencji...", null);
-      // TopicBase.synchronize(true);
+      if (!wasLoggedIn) TopicBase.download();
       self.open();
       return downloadLessons(res);
     })
