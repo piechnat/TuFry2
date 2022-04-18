@@ -2,7 +2,7 @@ import $ from "jquery";
 import body from "./body.html";
 import "./layout.css";
 import "./style.css";
-import { dateFmt, nop, session } from "./modules/utils";
+import { dateFmt, session } from "./modules/utils";
 import { showMsg } from "./modules/dialogs";
 import { App } from "./modules/App";
 import { TopicBase } from "./modules/TopicBase";
@@ -25,15 +25,13 @@ if ("scrollRestoration" in history) {
 }
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .then((registration) => {
-        console.log("SW registered: ", registration);
-      })
-      .catch((registrationError) => {
-        console.log("SW registration failed: ", registrationError);
-      });
+  window.addEventListener("load", async () => {
+    try {
+      const registration = await navigator.serviceWorker.register("/service-worker.js");
+      console.log("SW registered: ", registration);
+    } catch (registrationError) {
+      console.log("SW registration failed: ", registrationError);
+    }
   });
 }
 
@@ -61,34 +59,30 @@ $("form.open-day button.forgot").on("click", () => {
   App.updateLoginForm();
 });
 
-$("form.open-day button.logout").on("click", () => {
-  DayView.ifAllowEmpty("Niezapisane zmiany zostaną utracone! Czy na pewno chcesz się wylogować?")
-    .then(() => {
-      App.logout();
-      App.updateLoginForm();
-    })
-    .catch(nop);
+$("form.open-day button.logout").on("click", async () => {
+  const msg = "Niezapisane zmiany zostaną utracone! Czy na pewno chcesz się wylogować?";
+  if (await DayView.isAllowEmpty(msg)) {
+    App.logout();
+    App.updateLoginForm();
+  }
 });
 
-$("form.open-day").on("submit", function () {
+$("form.open-day").on("submit", async function () {
   const form = this;
-  DayView.ifAllowEmpty(
-    "Niezapisane zmiany zostaną utracone! Czy na pewno chcesz wczytać nowy dzień?"
-  )
-    .then(() => {
-      if (!App.loggedIn()) {
-        const login = form.username.value.split("@", 2).map((s) => s.trim());
-        if (login[1]) {
-          session.domain = login[1];
-        }
-        $("form.open-day i.domain").text(session.domain);
-        form.username.value = session.username = login[0];
-        form.password.value = session.password = form.password.value.trim();
+  const msg = "Niezapisane zmiany zostaną utracone! Czy na pewno chcesz wczytać nowy dzień?";
+  if (await DayView.isAllowEmpty(msg)) {
+    if (!App.loggedIn()) {
+      const login = form.username.value.split("@", 2).map((s) => s.trim());
+      if (login[1]) {
+        session.domain = login[1];
       }
-      session.strdate = form.date.value;
-      DayView.download();
-    })
-    .catch(nop);
+      $("form.open-day i.domain").text(session.domain);
+      form.username.value = session.username = login[0];
+      form.password.value = session.password = form.password.value.trim();
+    }
+    session.strdate = form.date.value;
+    DayView.download();
+  }
 });
 
 $("form.save-day button.save").on("click", () => {
@@ -102,9 +96,8 @@ $("form.save-day button.save").on("click", () => {
 });
 
 $("form.save-day button.close").on("click", () => {
-  DayView.ifAllowEmpty(
-    "Niezapisane zmiany zostaną utracone! Czy na pewno chcesz zamknąć dzień?"
-  ).catch(nop);
+  const msg = "Niezapisane zmiany zostaną utracone! Czy na pewno chcesz zamknąć dzień?";
+  DayView.isAllowEmpty(msg);
 });
 
 $("form.save-day button.topic-base-remove").on("click", TopicBase.removeDialog);

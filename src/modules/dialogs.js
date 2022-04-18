@@ -1,7 +1,6 @@
 import $ from "jquery";
 
-function showMsg(str) {
-  const waitFor = arguments.length <= 1 ? ["OK"] : arguments[1];
+function showMsg(str, waitFor = ["OK"]) {
   const $msgBox = (($jqElm) => {
     if ($jqElm.length) {
       return $jqElm.eq(0).stop().fadeIn(100);

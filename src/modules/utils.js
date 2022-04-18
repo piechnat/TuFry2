@@ -52,23 +52,19 @@ function dateFmt(d, f) {
 
 const rfcServiceUrl = window.location.protocol + "//" + window.location.hostname + "/rfcservice";
 
-function rfCall() {
+async function rfCall() {
   const args = [].slice.call(arguments);
-  return new Promise((resolve, reject) => {
-    axios
-      .post(rfcServiceUrl, {
-        fname: args.shift(),
-        args: args,
-        session: session,
-      })
-      .then(function (response) {
-        Object.assign(session, response.data.session);
-        resolve(response.data.value);
-      })
-      .catch(function (error) {
-        reject(error.response ? error.response.data : error.message);
-      });
-  });
+  try {
+    const response = await axios.post(rfcServiceUrl, {
+      fname: args.shift(),
+      args: args,
+      session: session,
+    });
+    Object.assign(session, response.data.session);
+    return response.data.value;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
 }
 
 export { session, nop, debug, dateFmt, rfCall };

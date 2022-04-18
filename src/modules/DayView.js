@@ -21,25 +21,14 @@ self.close = (closeIfEmpty) => {
   return false;
 };
 
-self.ifAllowEmpty = (str) =>
-  Promise.resolve()
-    .then(() => {
-      if (self.isEmpty()) {
-        return true;
-      }
-      Sound.click();
-      return showMsg(str, ["OK", "Anuluj"]);
-    })
-    .then((result) => {
-      if (result === "Anuluj") {
-        return Promise.reject();
-      }
-      const isEmpty = result === true;
-      if (!isEmpty) {
-        self.close();
-      }
-      return isEmpty;
-    });
+self.isAllowEmpty = async (str) => {
+  if (!self.isEmpty()) {
+    Sound.click();
+    if ((await showMsg(str, ["OK", "Anuluj"])) === "Anuluj") return false;
+    self.close();
+  }
+  return true;
+};
 
 self.removeElement = (htmlElm) => {
   Sound.pop();
@@ -105,11 +94,11 @@ self.download = () => {
     .then((res) => {
       closeFn();
       App.updateLoginForm();
+      if (!wasLoggedIn) TopicBase.download();
       if (!res.length) {
         throw new Error("We wskazanym dniu nie ma zajęć!");
       }
       closeFn = showMsg("Trwa pobieranie tematów i&nbsp;frekwencji...", null);
-      if (!wasLoggedIn) TopicBase.download();
       self.open();
       return downloadLessons(res);
     })

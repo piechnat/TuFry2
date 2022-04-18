@@ -1,6 +1,6 @@
 import { selectDialog, showMsg } from "./dialogs";
 import { Sound } from "./Sound";
-import { debug, nop, rfCall } from "./utils";
+import { nop, rfCall } from "./utils";
 
 const self = {};
 
@@ -52,35 +52,37 @@ self.indexOfAbsence = (topic) => {
   return -1;
 };
 
-self.download = () => {
-  rfCall("topicBaseFetch").then((res) => self.setItems(res));
-};
-
-self.add = (topic, subject, index) => {
-  if (self.canAdd(topic)) {
-    topic = topic.trim();
-    let promise;
-    if (index >= 0 && index < baseList.length) {
-      promise = rfCall("topicBaseUpdate", baseList[index].id, topic, subject).then((res) => {
-        baseList[index] = res;
-      });
-    } else {
-      promise = rfCall("topicBaseAdd", topic, subject).then((res) => {
-        baseList.push(res);
-      });
-    }
-    promise.catch((err) => {
-      showMsg(err);
-    });
+self.download = async () => {
+  try {
+    return self.setItems(await rfCall("topicBaseFetch"));
+  } catch (error) {
+    showMsg(error);
   }
 };
 
-self.remove = (index) => {
-  rfCall("topicBaseRemove", baseList[index].id)
-    .then((res) => {
-      baseList.splice(index, 1);
-    })
-    .catch(debug);
+self.add = async (topic, subject, index) => {
+  if (!self.canAdd(topic)) return;
+  topic = topic.trim();
+  try {
+    if (index >= 0 && index < baseList.length) {
+      const res = await rfCall("topicBaseUpdate", baseList[index].id, topic, subject);
+      baseList[index] = res;
+    } else {
+      const res = await rfCall("topicBaseAdd", topic, subject);
+      baseList.push(res);
+    }
+  } catch (error) {
+    showMsg(error);
+  }
+};
+
+self.remove = async (index) => {
+  try {
+    await rfCall("topicBaseRemove", baseList[index].id);
+    baseList.splice(index, 1);
+  } catch (err) {
+    showMsg(err);
+  }
 };
 
 self.dialog = (caption) => {
