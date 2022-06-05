@@ -1,9 +1,9 @@
 import $ from "jquery";
 import { App } from "./App";
 import { DayView } from "./DayView";
-import { selectDialog } from "./dialogs";
+import { searchDialog, selectDialog } from "./dialogs";
 import { TopicBase } from "./TopicBase";
-import { nop } from "./utils";
+import { rfCall } from "./utils";
 
 const self = {};
 
@@ -51,11 +51,11 @@ function _setSelDlgItem($jqElm, item) {
   return $jqElm.html(item);
 }
 
-function onButtonTimeClick() {
+async function onButtonTimeClick() {
   const $button = $(this);
   const lesson = getLessonFromElement($button);
   const canSave = lesson.attendance && lesson.topic && (lesson.attendMod || lesson.topicMod);
-  selectDialog([
+  const options = [
     ["caption-green", "Menu zajęć (" + lesson.time + ")"],
     [
       canSave ? "" : "disabled",
@@ -64,58 +64,56 @@ function onButtonTimeClick() {
     "<i class='bx bx-window-close' ></i> Zamknij bez zapisywania",
     "<i class='bx bx-info-circle' ></i> Informacje o przedmiocie",
     "<i class='bx bx-detail'></i> Ostatnie tematy",
-  ]).then((index) => {
-    switch (index) {
-      case 1:
-        if (canSave) {
-          DayView.upload([lesson]);
-        }
-        break;
-      case 2:
-        DayView.removeElement($button);
-        break;
-      case 3:
-        App.openLessonInfo($button, lesson);
-        break;
-      case 4:
-        App.openLastTopics($button, lesson);
-        break;
-    }
-  });
+  ];
+  switch (await selectDialog(options)) {
+    case 1:
+      if (canSave) {
+        DayView.upload([lesson]);
+      }
+      break;
+    case 2:
+      DayView.removeElement($button);
+      break;
+    case 3:
+      App.openLessonInfo($button, lesson);
+      break;
+    case 4:
+      App.openLastTopics($button, lesson);
+      break;
+  }
 }
 
-function onButtonAttendanceClick() {
+async function onButtonAttendanceClick() {
   const $button = $(this);
   const $input = $("input", $button.parent());
   const index = Math.max(0, ATTEND_VAL.indexOf(parseInt($input.val())));
-  selectDialog(ATTENDANCE, index).then((newIndex) => {
-    const attendance = ATTEND_VAL[newIndex];
-    $input.val(attendance || "");
-    _setSelDlgItem($button, ATTENDANCE[newIndex]);
-    if (newIndex !== index) {
-      switch (attendance) {
-        case 2:
-          _setTopic($input, TopicBase.getAbsence(0));
-          break;
-        case 3:
-          _setTopic($input, TopicBase.getAbsence(1));
-          break;
-        case 4:
-          _setTopic($input, TopicBase.getAbsence(2));
-          break;
-        case 6:
-          _setTopic($input, TopicBase.getAbsence(3));
-          break;
-        case 8:
-          _setTopic($input, TopicBase.getAbsence(4));
-          break;
-      }
-      $button.trigger("focus").closest("div.lesson").data("attendMod", true);
+  const newIndex = await selectDialog(ATTENDANCE, index);
+  const attendance = ATTEND_VAL[newIndex];
+  $input.val(attendance || "");
+  _setSelDlgItem($button, ATTENDANCE[newIndex]);
+  if (newIndex !== index) {
+    switch (attendance) {
+      case 2:
+        _setTopic($input, TopicBase.getAbsence(0));
+        break;
+      case 3:
+        _setTopic($input, TopicBase.getAbsence(1));
+        break;
+      case 4:
+        _setTopic($input, TopicBase.getAbsence(2));
+        break;
+      case 6:
+        _setTopic($input, TopicBase.getAbsence(3));
+        break;
+      case 8:
+        _setTopic($input, TopicBase.getAbsence(4));
+        break;
     }
-  });
+    $button.trigger("focus").closest("div.lesson").data("attendMod", true);
+  }
 }
 
-function onTopicMenuClick() {
+async function onTopicMenuClick() {
   const I_O = ' <i class="condensed muted">',
     I_C = "</i>";
   const $lesson = $(this).closest("div.lesson");
@@ -126,7 +124,7 @@ function onTopicMenuClick() {
     canPaste = clipboard.length && clipboard !== topic,
     canAdd = TopicBase.canAdd(topic),
     canOverwrite = canAdd && TopicBase.getLength();
-  selectDialog([
+  const options = [
     ["caption-green", "Menu tematu"],
     [canCopy ? "" : "disabled", "<i class='bx bx-copy-alt lg'></i> Kopiuj" + I_O + topic + I_C],
     [canAdd ? "" : "disabled", "<i class='bx bx-layer-plus lg'></i> Dodaj do bazy"],
@@ -134,48 +132,62 @@ function onTopicMenuClick() {
     [prevTopic ? "" : "disabled", "<i class='bx bx-undo lg'></i> Przywróć poprzedni"],
     [canPaste ? "" : "disabled", "<i class='bx bx-paste lg'></i> Wklej" + I_O + clipboard + I_C],
     "<i class='bx bx-import lg'></i> Wklej z bazy...",
-  ]).then((index) => {
-    switch (index) {
-      case 1:
-        if (canCopy) {
-          clipboard = topic;
-        }
-        break;
-      case 2:
-        if (canAdd) {
-          TopicBase.add(topic, $lesson.find("[name='subject']").val());
-        }
-        break;
-      case 3:
-        if (canOverwrite) {
-          TopicBase.overwriteDialog(topic);
-        }
-        break;
-      case 4:
-        if (prevTopic) {
-          _setTopic($textarea, prevTopic);
-        }
-        break;
-      case 5:
-        if (canPaste) {
-          _setTopic($textarea, clipboard);
-        }
-        break;
-      case 6:
-        onPasteIconClick.call($textarea.get(0));
-        break;
-    }
-  });
+  ];
+  switch (await selectDialog(options)) {
+    case 1:
+      if (canCopy) {
+        clipboard = topic;
+      }
+      break;
+    case 2:
+      if (canAdd) {
+        TopicBase.add(topic, $lesson.find("[name='subject']").val());
+      }
+      break;
+    case 3:
+      if (canOverwrite) {
+        TopicBase.overwriteDialog(topic);
+      }
+      break;
+    case 4:
+      if (prevTopic) {
+        _setTopic($textarea, prevTopic);
+      }
+      break;
+    case 5:
+      if (canPaste) {
+        _setTopic($textarea, clipboard);
+      }
+      break;
+    case 6:
+      onPasteIconClick.call($textarea.get(0));
+      break;
+  }
 }
 
-function onPasteIconClick() {
+async function onPasteIconClick() {
   const $lesson = $(this).closest("div.lesson");
-  const caption = "Wklej temat zajęć (" + $("input[name='time']", $lesson).val() + ")";
-  TopicBase.dialog(["caption-green", caption])
-    .then((index) => {
-      _setTopic($lesson, TopicBase.get(index));
-    })
-    .catch(nop);
+  const caption = "Wyszukaj temat zajęć (" + $("input[name='time']", $lesson).val() + ")";
+  const result = await searchDialog(
+    caption,
+    async (query, update) => {
+      update([{ html: '<div class="lds-dual-ring"></div>Proszę czekać...' }]);
+      try {
+        const result = await rfCall("topicBaseFind", query);
+        if (!result.length) {
+          throw new Error("Brak pasujących wyników");
+        }
+        update(result.map((item) => ({ class: "condensed", html: item.content, value: item })));
+      } catch (error) {
+        update([{ html: error.message }]);
+      }
+    },
+    TopicBase.getItems().map((item) => ({ class: "condensed", html: item.content, value: item }))
+  );
+  if (result) {
+    _setTopic($lesson, result.content);
+    TopicBase.join(result);
+  }
 }
 
 function getLessonFromElement(htmlElm) {

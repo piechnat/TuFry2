@@ -62,14 +62,12 @@ body {
   padding: 0 calc(0.5em + 1.5%);
   background-color: rgba(255, 255, 255, 0.9);
   box-shadow: 0 0 4rem 0.05rem rgba(45, 45, 45, 0.5);
-}
-.violet-shadow {
   background-image: linear-gradient(173deg, rgba(150, 138, 178, 0.6), transparent 5em),
     linear-gradient(353deg, rgba(150, 138, 178, 0.4), transparent 5em);
 }
 
 #loading {
-  /* opacity: 0; */
+  opacity: 0;
 }
 
 #copyright {
@@ -278,6 +276,16 @@ h1.title img.main-icon {
   cursor: default;
   position: sticky;
   top: 0;
+}
+
+.selectDialogWrapper .selectDialog .searchForm {
+  border: solid #ddd;
+  border-width: 1px 0;
+  padding: 0.6em 1em 0.5em 1em;
+}
+
+.selectDialogWrapper .selectDialog .searchForm input {
+  width: 100%;
 }
 
 .selected {

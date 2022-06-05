@@ -1,7 +1,8 @@
 {
   "name": "tufry2",
-  "version": "2.0.0",
-  "description": "",
+  "appName": "TurboFryderyk",
+  "version": "2.01",
+  "description": "Aplikacja wspomagająca wypełnianie dziennika elektronicznego Fryderyk, dla nauczycieli przedmiotów indywidualnych.",
   "main": "src/index.js",
   "scripts": {
     "start": "npx webpack serve",
@@ -30,7 +31,7 @@
     "webpack-cli": "^4.9.2",
     "webpack-dev-server": "^4.8.1",
     "webpack-pwa-manifest": "^4.3.0",
-    "workbox-webpack-plugin": "^6.5.3"
+    "workbox-webpack-plugin": "^6.3.0"
   },
   "dependencies": {
     "@babel/runtime": "^7.17.9",

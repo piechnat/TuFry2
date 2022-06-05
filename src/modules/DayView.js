@@ -24,7 +24,9 @@ self.close = (closeIfEmpty) => {
 self.isAllowEmpty = async (str) => {
   if (!self.isEmpty()) {
     Sound.click();
-    if ((await showMsg(str, ["OK", "Anuluj"])) === "Anuluj") return false;
+    if ((await showMsg(str, ["OK", "Anuluj"])) === "Anuluj") {
+      return false;
+    }
     self.close();
   }
   return true;
@@ -40,112 +42,94 @@ self.removeElement = (htmlElm) => {
     });
 };
 
-function downloadLessons(lessons) {
-  return new Promise((resolve, reject) => {
-    let remainingLessons = lessons.length;
-    let remainingLoops = Math.ceil(lessons.length / LESSONS_CHUNK_SIZE);
-    const $dayView = $("form.save-day div.day-view");
-    while (lessons.length) {
-      const lessonsPart = lessons.splice(0, LESSONS_CHUNK_SIZE);
-      const $formFragment = $("<p><i class='bx bx-loader'></i>Ładowanie...</p>");
-      $dayView.append($formFragment);
-      rfCall("getLessonDetails", lessonsPart)
-        .then((res) => {
-          remainingLessons -= res.length;
-          $formFragment.replaceWith(LessonHelper.buildElements(res));
-        })
-        .finally(() => {
-          if (--remainingLoops <= 0) {
-            remainingLessons <= 0 ? resolve() : reject("Nie udało się wczytać wszystkich zajęć!");
-          }
-        })
-        .catch((err) => $formFragment.text(err));
-    }
-  });
+async function downloadLessons(lessons) {
+  const promiseList = [];
+  const $dayView = $("form.save-day div.day-view");
+  while (lessons.length) {
+    const lessonsPart = lessons.splice(0, LESSONS_CHUNK_SIZE);
+    const $formFragment = $("<p><i class='bx bx-loader'></i>Ładowanie...</p>");
+    $dayView.append($formFragment);
+    const promise = rfCall("getLessonDetails", lessonsPart);
+    promise
+      .then((result) => $formFragment.replaceWith(LessonHelper.buildElements(result)))
+      .catch((error) => $formFragment.text(error.message));
+    promiseList.push(promise);
+  }
+  if ((await Promise.allSettled(promiseList)).some((result) => result.status === "rejected")) {
+    throw new Error("Nie udało się wczytać wszystkich zajęć!");
+  }
 }
 
-function uploadLessons(lessons) {
-  return new Promise((resolve, reject) => {
-    let remainingLessons = lessons.length;
-    let remainingLoops = Math.ceil(lessons.length / LESSONS_CHUNK_SIZE);
-    while (lessons.length) {
-      const lessonsPart = lessons.splice(0, LESSONS_CHUNK_SIZE);
-      rfCall("setDayLessons", lessonsPart)
-        .then((res) => {
-          res.forEach((topicVal) => {
-            self.removeElement($("input[value='" + topicVal + "']"));
-            remainingLessons--;
-          });
-        })
-        .finally(() => {
-          if (--remainingLoops <= 0) {
-            remainingLessons <= 0 ? resolve() : reject("Nie udało się zapisać wszystkich zajęć!");
-          }
-        })
-        .catch(debug);
-    }
-  });
+async function uploadLessons(lessons) {
+  const promiseList = [];
+  while (lessons.length) {
+    const lessonsPart = lessons.splice(0, LESSONS_CHUNK_SIZE);
+    const promise = rfCall("setDayLessons", lessonsPart);
+    promise
+      .then((resultList) => {
+        resultList.forEach((topicVal) => {
+          self.removeElement($("input[value='" + topicVal + "']"));
+        });
+      })
+      .catch(debug);
+    promiseList.push(promise);
+  }
+  if ((await Promise.allSettled(promiseList)).some((result) => result.status === "rejected")) {
+    throw new Error("Nie udało się zapisać wszystkich zajęć!");
+  }
 }
 
-self.download = () => {
+self.download = async () => {
   const wasLoggedIn = App.loggedIn();
-  let closeFn = showMsg("Trwa pobieranie listy uczniów...", null);
-  rfCall("getDayLessons")
-    .then((res) => {
-      closeFn();
+  let closeMsg = showMsg("Trwa pobieranie listy uczniów...", null);
+  try {
+    try {
+      const result = await rfCall("getDayLessons");
       App.updateLoginForm();
-      if (!wasLoggedIn) TopicBase.download();
-      if (!res.length) {
+      if (!wasLoggedIn) {
+        TopicBase.download();
+      }
+      if (!result.length) {
         throw new Error("We wskazanym dniu nie ma zajęć!");
       }
-      closeFn = showMsg("Trwa pobieranie tematów i&nbsp;frekwencji...", null);
+      closeMsg();
       self.open();
-      return downloadLessons(res);
-    })
-    .finally(() => {
-      closeFn();
-    })
-    .then(() => {
+      closeMsg = showMsg("Trwa pobieranie tematów i&nbsp;frekwencji...", null);
+      await downloadLessons(result);
       Sound.beep();
-    })
-    .catch((err) => {
-      Sound.click();
-      return showMsg(err);
-    })
-    .finally(() => {
-      self.close(true);
-    });
+    } finally {
+      closeMsg();
+    }
+  } catch (error) {
+    Sound.click();
+    await showMsg(error);
+    self.close(true);
+  }
 };
 
-self.upload = (lessons) => {
+self.upload = async (lessons) => {
   const lessonsLen = lessons.length;
   if (!App.loggedIn() || !lessonsLen) {
     return false;
   }
-  const closeFn = showMsg("Trwa zapisywanie zajęć (" + lessonsLen + ")", null);
-  Promise.resolve()
-    .then(() => {
-      if (session.subjectField) {
-        return uploadLessons(lessons);
+  const closeMsg = showMsg("Trwa zapisywanie zajęć (" + lessonsLen + ")", null);
+  try {
+    try {
+      if (!session.subjectField) {
+        session.subjectField = await rfCall("getSubjectField", lessons[0].topicPrms);
       }
-      return rfCall("getSubjectField", lessons[0].topicPrms).then((res) => {
-        session.subjectField = res;
-        return uploadLessons(lessons);
-      });
-    })
-    .finally(() => {
-      closeFn();
-    })
-    .then(() => {
+      await uploadLessons(lessons);
       Sound.beep();
-      if (lessonsLen > 1) {
-        showMsg("Zajęcia zostały zapisane.");
-      }
-    })
-    .catch((err) => {
-      Sound.click();
-      showMsg(err);
-    });
+    } finally {
+      closeMsg();
+    }
+    if (lessonsLen > 1) {
+      showMsg("Zajęcia zostały zapisane.");
+    }
+  } catch (error) {
+    Sound.click();
+    showMsg(error);
+  }
 };
 
 export { self as DayView };

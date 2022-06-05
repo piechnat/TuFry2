@@ -22,18 +22,18 @@ self.logout = () => {
   TopicBase.setItems([]);
 };
 
-self.showAboutInfo = () => {
+self.showAboutInfo = async () => {
   showMsg(`
     <p>
-      <b>TurboFryderyk</b>, ver. ${session.VER.toFixed(2)}<br>
+      <b>TurboFryderyk</b>, ver. ${parseFloat(session.VER).toFixed(2)}<br>
       <small>
-        Google Web App &copy;&nbsp;${new Date().getFullYear()} 
+        Google Web App &copy;&nbsp;${new Date().getFullYear()}
         <a href="mailto:mpiechnat@psmkutno.pl" target="_blank">Mateusz Piechnat</a>
       </small>
     </p>
     <p>
-      Aplikacja wspomagająca wypełnianie dziennika elektronicznego 
-      <span class="fryderyk-full"><span class="fryderyk-logo"></span></span>, 
+      Aplikacja wspomagająca wypełnianie dziennika elektronicznego
+      <span class="fryderyk-full"><span class="fryderyk-logo"></span></span>,
       dla&nbsp;nauczycieli przedmiotów indywidualnych.
     </p>
     <h4>Instalacja</h4>
@@ -41,9 +41,9 @@ self.showAboutInfo = () => {
       <small>
         Upewnij się, że niniejsza strona jest otwarta w&nbsp;domyślnej przeglądarce internetu.
         <br>
-        Jeśli nie widzisz dedykowanego przycisku instalacji, to z&nbsp;menu wybierz opcję 
-        <em>Dodaj do ekranu głównego</em></a> (nazwa może różnić się w&nbsp;zależności 
-        od używanej przeglądarki, np. w&nbsp;<em>Safari na iOS</em> należy kliknąć ikonę 
+        Jeśli nie widzisz dedykowanego przycisku instalacji, to z&nbsp;menu wybierz opcję
+        <em>Dodaj do ekranu głównego</em></a> (nazwa może różnić się w&nbsp;zależności
+        od używanej przeglądarki, np. w&nbsp;<em>Safari na iOS</em> należy kliknąć ikonę
         <em>Udostępnij</em>, a&nbsp;następnie <em>Do ekranu początkowego</em>).
       </small>
     </p>
@@ -88,13 +88,13 @@ self.openLessonInfo = ($jqOwner, lesson) => {
         "<p>Trwa ładowanie informacji o&nbsp;przedmiocie...</p></div>"
     ).then(focus);
     rfCall("getLessonInfo", lesson.topicPrms[0])
-      .then((res) => {
-        $jqOwner.data(DATA_ID, res);
-        return res;
+      .then((result) => {
+        $jqOwner.data(DATA_ID, result);
+        return result;
       })
       .catch((x) => x)
-      .then((res) => {
-        $("#" + loaderId).replaceWith(D_O + res + D_C);
+      .then((result) => {
+        $("#" + loaderId).replaceWith(D_O + result + D_C);
       });
   }
 };
@@ -116,13 +116,13 @@ self.openLastTopics = ($jqOwner, lesson) => {
         "<p>Trwa ładowanie ostatnich tematów...</p></div>"
     ).then(focus);
     rfCall("getLastTopics", lesson.topicPrms[0], lesson.timePrms[0])
-      .then((res) => {
-        $jqOwner.data(DATA_ID, res);
-        return res;
+      .then((result) => {
+        $jqOwner.data(DATA_ID, result);
+        return result;
       })
       .catch((x) => x)
-      .then((res) => {
-        $("#" + loaderId).replaceWith(D_O + res + D_C);
+      .then((result) => {
+        $("#" + loaderId).replaceWith(D_O + result + D_C);
       });
   }
 };

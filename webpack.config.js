@@ -3,6 +3,7 @@ const WorkboxWebpackPlugin = require("workbox-webpack-plugin");
 const WebpackPwaManifest = require("webpack-pwa-manifest");
 const ESLintPlugin = require("eslint-webpack-plugin");
 const path = require("path");
+const pckgJson = require("./package.json");
 
 const config = {
   mode: "development",
@@ -23,11 +24,10 @@ const config = {
       display: "standalone",
       scope: "/",
       start_url: "/",
-      name: "TurboFryderyk",
-      short_name: "TurboFryderyk",
-      description:
-        "Aplikacja wspomagaj\u0105ca wype\u0142nianie dziennika elektronicznego Fryderyk, dla nauczycieli przedmiot\u00f3w indywidualnych.",
-      version: "2.0",
+      name: pckgJson.appName,
+      short_name: pckgJson.appName,
+      description: pckgJson.description,
+      version: pckgJson.version,
       icons: [
         {
           src: path.resolve("src/assets/icon.png"),

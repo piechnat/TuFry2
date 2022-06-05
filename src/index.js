@@ -44,7 +44,7 @@ $("form").on("submit", function (e) {
   if (!this.checkValidity()) {
     try {
       this.reportValidity();
-    } catch (e) {}
+    } catch {}
   }
   return false;
 });
@@ -106,7 +106,7 @@ function onLoadData(str) {
   const obj = {};
   try {
     Object.assign(obj, JSON.parse(str, JSON.dateParser));
-  } catch (e) {}
+  } catch {}
   if (!obj.session) {
     obj.session = {};
   }
@@ -143,7 +143,7 @@ function onLoadData(str) {
   } else {
     $("input.date", $openDay).val(dateFmt(new Date(), "RRRR-MM-DD"));
   }
-  $("#loading").fadeTo(200, 1).parent().addClass("violet-shadow");
+  $("#loading").fadeTo(200, 1);
 }
 
 onLoadData(localStorage.getItem("DATA"));
@@ -182,9 +182,9 @@ $(document.body).on("touchstart.gstr touchend.gstr mousedown.gstr keydown.gstr",
 addEventListener("popstate", (event) => {
   if (!event.state) {
     onSaveData();
-    const closeFn = showMsg("Naciśnij ponownie <i>Wstecz</i>, aby wyjść.", []);
+    const closeMsg = showMsg("Naciśnij ponownie <i>Wstecz</i>, aby wyjść.", []);
     setTimeout(() => {
-      closeFn();
+      closeMsg();
       history.pushState({}, "");
     }, 800);
   }

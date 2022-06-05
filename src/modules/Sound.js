@@ -24,7 +24,7 @@ self.setup = () => {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
       audioCtx.resume();
-    } catch (e) {
+    } catch {
       audioCtx = null;
     }
   }

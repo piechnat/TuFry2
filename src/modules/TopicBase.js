@@ -1,6 +1,6 @@
 import { selectDialog, showMsg } from "./dialogs";
 import { Sound } from "./Sound";
-import { nop, rfCall } from "./utils";
+import { rfCall } from "./utils";
 
 const self = {};
 
@@ -15,12 +15,12 @@ const ABSENCES = [
 const baseList = [];
 
 self.getAbsence = (index) => ABSENCES[index];
-self.get = (index) => baseList[index].content;
+self.getContent = (index) => baseList[index].content;
 self.getItems = () => baseList;
 self.getLength = () => baseList.length;
 
 self.setItems = (list) => {
-  if (Array.isArray(list) && list.length) {
+  if (Array.isArray(list)) {
     baseList.splice(0, baseList.length);
     [].push.apply(baseList, list);
   }
@@ -60,8 +60,16 @@ self.download = async () => {
   }
 };
 
+self.join = async (item) => {
+  if (self.canAdd(item.content)) {
+    baseList.push(item);
+  }
+};
+
 self.add = async (topic, subject, index) => {
-  if (!self.canAdd(topic)) return;
+  if (!self.canAdd(topic)) {
+    return;
+  }
   topic = topic.trim();
   try {
     if (index >= 0 && index < baseList.length) {
@@ -80,51 +88,42 @@ self.remove = async (index) => {
   try {
     await rfCall("topicBaseRemove", baseList[index].id);
     baseList.splice(index, 1);
-  } catch (err) {
-    showMsg(err);
+  } catch (error) {
+    showMsg(error);
   }
 };
 
-self.dialog = (caption) => {
+self.dialog = async (caption) => {
   if (!self.getLength()) {
     caption = ["muted", "Baza tematów jest pusta"];
   }
-  return new Promise((resolve, reject) => {
-    selectDialog(
-      (caption ? [caption] : []).concat(
-        self.getItems().map((topic) => ["condensed", topic.content])
-      )
-    ).then((index) => {
-      if (caption) {
-        index--;
-      }
-      if (index >= 0) {
-        resolve(index);
-      } else {
-        reject();
-      }
-    });
-  });
+  const options = (caption ? [caption] : []).concat(
+    self.getItems().map((topic) => ["condensed", topic.content])
+  );
+  let index = await selectDialog(options);
+  if (caption) {
+    index--;
+  }
+  if (index < 0) {
+    throw new Error();
+  }
+  return index;
 };
 
-self.removeDialog = () => {
-  self
-    .dialog(["caption-red", "Wybierz temat do usunięcia"])
-    .then((index) => {
-      self.remove(index);
-      Sound.pop();
-    })
-    .catch(nop);
+self.removeDialog = async () => {
+  try {
+    const index = await self.dialog(["caption-red", "Wybierz temat do usunięcia"]);
+    self.remove(index);
+    Sound.pop();
+  } catch {}
 };
 
-self.overwriteDialog = (topic) => {
-  self
-    .dialog(["caption-red", "Wybierz temat do nadpisania"])
-    .then((index) => {
-      self.add(topic, baseList[index].subject, index);
-      Sound.pop();
-    })
-    .catch(nop);
+self.overwriteDialog = async (topic) => {
+  try {
+    const index = await self.dialog(["caption-red", "Wybierz temat do nadpisania"]);
+    self.add(topic, baseList[index].subject, index);
+    Sound.pop();
+  } catch {}
 };
 
 export { self as TopicBase };
