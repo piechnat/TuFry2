@@ -1,6 +1,7 @@
 import $ from "jquery";
 import { showMsg } from "./dialogs";
 import { Sound } from "./Sound";
+import { TopicBase } from "./TopicBase";
 import { session, rfCall } from "./utils";
 
 const self = {};
@@ -18,20 +19,21 @@ self.logout = () => {
   session.cookies = {};
   session.loggedIn = undefined;
   session.subjectField = null;
+  TopicBase.setItems([]);
 };
 
-self.showAboutInfo = () => {
+self.showAboutInfo = async () => {
   showMsg(`
     <p>
-      <b>TurboFryderyk</b>, ver. ${session.VER.toFixed(2)}<br>
+      <b>TurboFryderyk</b>, ver. ${parseFloat(session.VER).toFixed(2)}<br>
       <small>
-        Google Web App &copy;&nbsp;${new Date().getFullYear()} 
+        Google Web App &copy;&nbsp;${new Date().getFullYear()}
         <a href="mailto:mpiechnat@psmkutno.pl" target="_blank">Mateusz Piechnat</a>
       </small>
     </p>
     <p>
-      Aplikacja wspomagająca wypełnianie dziennika elektronicznego 
-      <span class="fryderyk-full"><span class="fryderyk-logo"></span></span>, 
+      Aplikacja wspomagająca wypełnianie dziennika elektronicznego
+      <span class="fryderyk-full"><span class="fryderyk-logo"></span></span>,
       dla&nbsp;nauczycieli przedmiotów indywidualnych.
     </p>
     <h4>Instalacja</h4>
@@ -39,9 +41,9 @@ self.showAboutInfo = () => {
       <small>
         Upewnij się, że niniejsza strona jest otwarta w&nbsp;domyślnej przeglądarce internetu.
         <br>
-        Jeśli nie widzisz dedykowanego przycisku instalacji, to z&nbsp;menu wybierz opcję 
-        <em>Dodaj do ekranu głównego</em></a> (nazwa może różnić się w&nbsp;zależności 
-        od używanej przeglądarki, np. w&nbsp;<em>Safari na iOS</em> należy kliknąć ikonę 
+        Jeśli nie widzisz dedykowanego przycisku instalacji, to z&nbsp;menu wybierz opcję
+        <em>Dodaj do ekranu głównego</em></a> (nazwa może różnić się w&nbsp;zależności
+        od używanej przeglądarki, np. w&nbsp;<em>Safari na iOS</em> należy kliknąć ikonę
         <em>Udostępnij</em>, a&nbsp;następnie <em>Do ekranu początkowego</em>).
       </small>
     </p>
@@ -72,10 +74,10 @@ self.updateLoginForm = () => {
 self.openLessonInfo = ($jqOwner, lesson) => {
   const DATA_ID = "lesson-info";
   const lessonInfo = $jqOwner.data(DATA_ID);
-  const loaderId = DATA_ID + "-" + lesson.subjectPrms[0];
+  const loaderId = DATA_ID + "-" + lesson.topicPrms[0];
   const D_O = '<div style="text-align: left">',
     D_C = "</div>";
-  const focus = () => $jqOwner.focus();
+  const focus = () => $jqOwner.trigger("focus");
   if (lessonInfo) {
     showMsg(D_O + lessonInfo + D_C).then(focus);
   } else {
@@ -85,27 +87,27 @@ self.openLessonInfo = ($jqOwner, lesson) => {
         '"><div class="lds-dual-ring"></div>' +
         "<p>Trwa ładowanie informacji o&nbsp;przedmiocie...</p></div>"
     ).then(focus);
-    rfCall("getLessonInfo", lesson.subjectPrms[0])
-      .then((res) => {
-        $jqOwner.data(DATA_ID, res);
-        return res;
+    rfCall("getLessonInfo", lesson.topicPrms[0])
+      .then((result) => {
+        $jqOwner.data(DATA_ID, result);
+        return result;
       })
       .catch((x) => x)
-      .then((res) => {
-        $("#" + loaderId).replaceWith(D_O + res + D_C);
+      .then((result) => {
+        $("#" + loaderId).replaceWith(D_O + result + D_C);
       });
   }
 };
 
-self.openLastSubjects = ($jqOwner, lesson) => {
-  const DATA_ID = "last-subjects";
-  const lastSubjects = $jqOwner.data(DATA_ID);
-  const loaderId = DATA_ID + "-" + lesson.subjectPrms[0];
+self.openLastTopics = ($jqOwner, lesson) => {
+  const DATA_ID = "last-topics";
+  const lastTopics = $jqOwner.data(DATA_ID);
+  const loaderId = DATA_ID + "-" + lesson.topicPrms[0];
   const D_O = '<div style="text-align: left">',
     D_C = "</div>";
-  const focus = () => $jqOwner.focus();
-  if (lastSubjects) {
-    showMsg(D_O + lastSubjects + D_C).then(focus);
+  const focus = () => $jqOwner.trigger("focus");
+  if (lastTopics) {
+    showMsg(D_O + lastTopics + D_C).then(focus);
   } else {
     showMsg(
       '<div id="' +
@@ -113,14 +115,14 @@ self.openLastSubjects = ($jqOwner, lesson) => {
         '"><div class="lds-dual-ring"></div>' +
         "<p>Trwa ładowanie ostatnich tematów...</p></div>"
     ).then(focus);
-    rfCall("getLastSubjects", lesson.subjectPrms[0], lesson.timePrms[0])
-      .then((res) => {
-        $jqOwner.data(DATA_ID, res);
-        return res;
+    rfCall("getLastTopics", lesson.topicPrms[0], lesson.timePrms[0])
+      .then((result) => {
+        $jqOwner.data(DATA_ID, result);
+        return result;
       })
       .catch((x) => x)
-      .then((res) => {
-        $("#" + loaderId).replaceWith(D_O + res + D_C);
+      .then((result) => {
+        $("#" + loaderId).replaceWith(D_O + result + D_C);
       });
   }
 };

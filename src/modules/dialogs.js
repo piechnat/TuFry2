@@ -1,7 +1,6 @@
 import $ from "jquery";
 
-function showMsg(str) {
-  const waitFor = arguments.length <= 1 ? ["OK"] : arguments[1];
+function showMsg(content, waitFor = ["OK"]) {
   const $msgBox = (($jqElm) => {
     if ($jqElm.length) {
       return $jqElm.eq(0).stop().fadeIn(100);
@@ -20,10 +19,10 @@ function showMsg(str) {
     clearTimeout($content.data("reset-button"));
   };
   let result = close;
-  if (str && str.message) {
-    str = str.message;
+  if (content && content.message) {
+    content = content.message;
   }
-  $content.find("p").html(str);
+  $content.find("p").html(content);
   if (Array.isArray(waitFor) && waitFor.length > 0) {
     const $buttons = $('<p class="buttons"/>');
     result = new Promise((resolve) => {
@@ -62,8 +61,10 @@ function showMsg(str) {
   return result;
 }
 
-function selectDialog(optionsList, defIndex) {
-  if (defIndex === undefined) defIndex = -1;
+function selectDialog(optionList, defIndex) {
+  if (defIndex === undefined) {
+    defIndex = -1;
+  }
   return new Promise((resolve) => {
     function cancel(event) {
       resolve(defIndex);
@@ -83,7 +84,7 @@ function selectDialog(optionsList, defIndex) {
       $container.fadeOut(delay, () => $container.remove());
     }
     const $list = $("<ul/>");
-    optionsList.forEach((item, index) => {
+    optionList.forEach((item, index) => {
       if (!item) {
         return;
       }
@@ -114,4 +115,63 @@ function selectDialog(optionsList, defIndex) {
   });
 }
 
-export { showMsg, selectDialog };
+function searchDialog(caption, onSearch, defList = []) {
+  return new Promise((resolve) => {
+    function cancel(event) {
+      resolve();
+      close(event ? 0 : 1);
+    }
+    const $dialog = $('<div class="selectDialog"/>');
+    const $container = $('<div class="selectDialogWrapper"/>').on("click", (e) => {
+      if (!$dialog.get(0).contains(e.target)) {
+        cancel();
+      }
+    });
+    function close(delay) {
+      removeEventListener("popstate", cancel);
+      if (delay) {
+        history.back();
+      }
+      $container.fadeOut(delay, () => $container.remove());
+    }
+    const $list = $("<ul/>");
+    function update(itemList) {
+      $list.empty();
+      itemList.forEach((item) => {
+        $list.append(
+          $("<li/>", { class: item.class })
+            .html(item.html)
+            .on("click", () => {
+              close(200);
+              resolve(item.value);
+            })
+        );
+      });
+    }
+    const $header = $("<ul/>").append([
+      $("<li/>", { class: "caption-green" }).html(caption).on("click", close),
+      $('<form class="searchForm"><input></form>').on("submit", function (e) {
+        e.preventDefault();
+        const query = $("input", this).val();
+        if (query.length > 2) {
+          onSearch(query, update);
+        } else {
+          update(defList);
+        }
+        return false;
+      }),
+    ]);
+    update(defList);
+    setTimeout(() => {
+      $container.append($dialog.append($header, $list)).hide().appendTo(document.body).fadeIn(200);
+      addEventListener("popstate", cancel);
+      history.pushState({}, "");
+      const selected = $("li.selected", $dialog).get(0);
+      if (selected) {
+        selected.scrollIntoView({ block: "center" });
+      }
+    }, 50);
+  });
+}
+
+export { showMsg, selectDialog, searchDialog };

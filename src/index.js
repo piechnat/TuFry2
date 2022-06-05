@@ -2,10 +2,10 @@ import $ from "jquery";
 import body from "./body.html";
 import "./layout.css";
 import "./style.css";
-import { dateFmt, nop, session } from "./modules/utils";
+import { dateFmt, session } from "./modules/utils";
 import { showMsg } from "./modules/dialogs";
 import { App } from "./modules/App";
-import { SubjectBase } from "./modules/SubjectBase";
+import { TopicBase } from "./modules/TopicBase";
 import { Sound } from "./modules/Sound";
 import { LessonHelper } from "./modules/LessonHelper";
 import { DayView } from "./modules/DayView";
@@ -25,15 +25,13 @@ if ("scrollRestoration" in history) {
 }
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .then((registration) => {
-        console.log("SW registered: ", registration);
-      })
-      .catch((registrationError) => {
-        console.log("SW registration failed: ", registrationError);
-      });
+  window.addEventListener("load", async () => {
+    try {
+      const registration = await navigator.serviceWorker.register("/service-worker.js");
+      console.log("SW registered: ", registration);
+    } catch (registrationError) {
+      console.log("SW registration failed: ", registrationError);
+    }
   });
 }
 
@@ -46,7 +44,7 @@ $("form").on("submit", function (e) {
   if (!this.checkValidity()) {
     try {
       this.reportValidity();
-    } catch (e) {}
+    } catch {}
   }
   return false;
 });
@@ -57,45 +55,34 @@ $("form.open-day button.forgot").on("click", () => {
   Sound.pop();
   App.logout();
   session.username = session.password = null;
-  SubjectBase.setLastAccess(0);
   $("form.open-day input.username, form.open-day input.password").val("");
   App.updateLoginForm();
 });
 
-$("form.open-day button.logout").on("click", () => {
-  DayView.ifAllowEmpty("Niezapisane zmiany zostaną utracone! Czy na pewno chcesz się wylogować?")
-    .then((wasEmpty) => {
-      if (!wasEmpty) {
-        // return SubjectBase.synchronize();
-      }
-    })
-    .then(() => {
-      App.logout();
-      SubjectBase.setLastAccess(0);
-      App.updateLoginForm();
-    })
-    .catch(nop);
+$("form.open-day button.logout").on("click", async () => {
+  const msg = "Niezapisane zmiany zostaną utracone! Czy na pewno chcesz się wylogować?";
+  if (await DayView.isAllowEmpty(msg)) {
+    App.logout();
+    App.updateLoginForm();
+  }
 });
 
-$("form.open-day").on("submit", function () {
+$("form.open-day").on("submit", async function () {
   const form = this;
-  DayView.ifAllowEmpty(
-    "Niezapisane zmiany zostaną utracone! Czy na pewno chcesz wczytać nowy dzień?"
-  )
-    .then(() => {
-      if (!App.loggedIn()) {
-        const login = form.username.value.split("@", 2).map((s) => s.trim());
-        if (login[1]) {
-          session.domain = login[1];
-        }
-        $("form.open-day i.domain").text(session.domain);
-        form.username.value = session.username = login[0];
-        form.password.value = session.password = form.password.value.trim();
+  const msg = "Niezapisane zmiany zostaną utracone! Czy na pewno chcesz wczytać nowy dzień?";
+  if (await DayView.isAllowEmpty(msg)) {
+    if (!App.loggedIn()) {
+      const login = form.username.value.split("@", 2).map((s) => s.trim());
+      if (login[1]) {
+        session.domain = login[1];
       }
-      session.strdate = form.date.value;
-      DayView.download();
-    })
-    .catch(nop);
+      $("form.open-day i.domain").text(session.domain);
+      form.username.value = session.username = login[0];
+      form.password.value = session.password = form.password.value.trim();
+    }
+    session.strdate = form.date.value;
+    DayView.download();
+  }
 });
 
 $("form.save-day button.save").on("click", () => {
@@ -109,22 +96,17 @@ $("form.save-day button.save").on("click", () => {
 });
 
 $("form.save-day button.close").on("click", () => {
-  DayView.ifAllowEmpty("Niezapisane zmiany zostaną utracone! Czy na pewno chcesz zamknąć dzień?")
-    .then((wasEmpty) => {
-      if (!wasEmpty) {
-        // return SubjectBase.synchronize();
-      }
-    })
-    .catch(nop);
+  const msg = "Niezapisane zmiany zostaną utracone! Czy na pewno chcesz zamknąć dzień?";
+  DayView.isAllowEmpty(msg);
 });
 
-$("form.save-day button.subject-base-remove").on("click", SubjectBase.removeDialog);
+$("form.save-day button.topic-base-remove").on("click", TopicBase.removeDialog);
 
 function onLoadData(str) {
   const obj = {};
   try {
     Object.assign(obj, JSON.parse(str, JSON.dateParser));
-  } catch (e) {}
+  } catch {}
   if (!obj.session) {
     obj.session = {};
   }
@@ -133,8 +115,7 @@ function onLoadData(str) {
     App.showAboutInfo();
   }
   Object.assign(session, obj.session);
-  SubjectBase.setAll(obj.subjects);
-  SubjectBase.setSyncData(obj.syncData);
+  TopicBase.setItems(obj.topics);
   if (typeof obj.soundEnabled === "boolean") {
     Sound.enabled = obj.soundEnabled;
   }
@@ -162,7 +143,7 @@ function onLoadData(str) {
   } else {
     $("input.date", $openDay).val(dateFmt(new Date(), "RRRR-MM-DD"));
   }
-  $("#loading").fadeTo(200, 1).parent().addClass("violet-shadow");
+  $("#loading").fadeTo(200, 1);
 }
 
 onLoadData(localStorage.getItem("DATA"));
@@ -172,8 +153,7 @@ function onSaveData() {
     session: session,
     lastDay: new Date().getDate(),
     lessons: LessonHelper.collectLessons(),
-    subjects: SubjectBase.getAll(),
-    syncData: SubjectBase.getSyncData(),
+    topics: TopicBase.getItems(),
     soundEnabled: Sound.enabled,
   });
   localStorage.setItem("DATA", str);
@@ -202,9 +182,9 @@ $(document.body).on("touchstart.gstr touchend.gstr mousedown.gstr keydown.gstr",
 addEventListener("popstate", (event) => {
   if (!event.state) {
     onSaveData();
-    const closeFn = showMsg("Naciśnij ponownie <i>Wstecz</i>, aby wyjść.", []);
+    const closeMsg = showMsg("Naciśnij ponownie <i>Wstecz</i>, aby wyjść.", []);
     setTimeout(() => {
-      closeFn();
+      closeMsg();
       history.pushState({}, "");
     }, 800);
   }

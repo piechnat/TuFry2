@@ -1,9 +1,9 @@
 import $ from "jquery";
 import { App } from "./App";
 import { DayView } from "./DayView";
-import { selectDialog } from "./dialogs";
-import { SubjectBase } from "./SubjectBase";
-import { nop } from "./utils";
+import { searchDialog, selectDialog } from "./dialogs";
+import { TopicBase } from "./TopicBase";
+import { rfCall } from "./utils";
 
 const self = {};
 
@@ -23,20 +23,20 @@ const ATTEND_VAL = [0, 1, 2, 5, 3, 4, 6, 7, 8];
 
 let clipboard = "";
 
-function _setSub(elm, subject) {
-  const $lesson = $(elm).closest("div.lesson").data("subjectMod", true);
-  const $textarea = $lesson.find("textarea.subject");
+function _setTopic(elm, topic) {
+  const $lesson = $(elm).closest("div.lesson").data("topicMod", true);
+  const $textarea = $lesson.find("textarea.topic");
   setTimeout(() => {
     $(document).one("click", (e) => {
       $textarea.removeClass("manual-focus");
       if (e.target !== $textarea.get(0)) {
-        $textarea.blur();
+        $textarea.trigger("blur");
       }
     });
   }, 1);
-  const prevSubject = $textarea.val();
-  if (subject !== prevSubject) {
-    $textarea.data("prev-subject", prevSubject).val(subject);
+  const prevTopic = $textarea.val();
+  if (topic !== prevTopic) {
+    $textarea.data("prev-topic", prevTopic).val(topic);
   }
   $textarea.addClass("manual-focus").get(0).scrollIntoView({ block: "nearest" });
   return $textarea;
@@ -51,11 +51,11 @@ function _setSelDlgItem($jqElm, item) {
   return $jqElm.html(item);
 }
 
-function onButtonTimeClick() {
+async function onButtonTimeClick() {
   const $button = $(this);
   const lesson = getLessonFromElement($button);
-  const canSave = lesson.attendance && lesson.subject && (lesson.attendMod || lesson.subjectMod);
-  selectDialog([
+  const canSave = lesson.attendance && lesson.topic && (lesson.attendMod || lesson.topicMod);
+  const options = [
     ["caption-green", "Menu zajęć (" + lesson.time + ")"],
     [
       canSave ? "" : "disabled",
@@ -64,132 +64,145 @@ function onButtonTimeClick() {
     "<i class='bx bx-window-close' ></i> Zamknij bez zapisywania",
     "<i class='bx bx-info-circle' ></i> Informacje o przedmiocie",
     "<i class='bx bx-detail'></i> Ostatnie tematy",
-  ]).then((index) => {
-    switch (index) {
-      case 1:
-        if (canSave) {
-          DayView.upload([lesson]);
-        }
-        break;
-      case 2:
-        DayView.removeElement($button);
-        break;
-      case 3:
-        App.openLessonInfo($button, lesson);
-        break;
-      case 4:
-        App.openLastSubjects($button, lesson);
-        break;
-    }
-  });
+  ];
+  switch (await selectDialog(options)) {
+    case 1:
+      if (canSave) {
+        DayView.upload([lesson]);
+      }
+      break;
+    case 2:
+      DayView.removeElement($button);
+      break;
+    case 3:
+      App.openLessonInfo($button, lesson);
+      break;
+    case 4:
+      App.openLastTopics($button, lesson);
+      break;
+  }
 }
 
-function onButtonAttendanceClick() {
+async function onButtonAttendanceClick() {
   const $button = $(this);
   const $input = $("input", $button.parent());
   const index = Math.max(0, ATTEND_VAL.indexOf(parseInt($input.val())));
-  selectDialog(ATTENDANCE, index).then((newIndex) => {
-    const attendance = ATTEND_VAL[newIndex];
-    $input.val(attendance || "");
-    _setSelDlgItem($button, ATTENDANCE[newIndex]);
-    if (newIndex !== index) {
-      switch (attendance) {
-        case 2:
-          _setSub($input, SubjectBase.getAbsence(0));
-          break;
-        case 3:
-          _setSub($input, SubjectBase.getAbsence(1));
-          break;
-        case 4:
-          _setSub($input, SubjectBase.getAbsence(2));
-          break;
-        case 6:
-          _setSub($input, SubjectBase.getAbsence(3));
-          break;
-        case 8:
-          _setSub($input, SubjectBase.getAbsence(4));
-          break;
-      }
-      $button.focus().closest("div.lesson").data("attendMod", true);
-    }
-  });
-}
-
-function onSubjectMenuClick() {
-  const I_O = ' <i class="condensed muted">',
-    I_C = "</i>";
-  const $textarea = $(this).closest("div.lesson").find("textarea");
-  const subject = $textarea.val(),
-    prevSubject = $textarea.data("prev-subject");
-  const canCopy = subject.length && subject !== clipboard,
-    canPaste = clipboard.length && clipboard !== subject,
-    canAdd = SubjectBase.canAdd(subject),
-    canOverwrite = canAdd && SubjectBase.getLength();
-  selectDialog([
-    ["caption-green", "Menu tematu"],
-    [canCopy ? "" : "disabled", "<i class='bx bx-copy-alt lg'></i> Kopiuj" + I_O + subject + I_C],
-    [canAdd ? "" : "disabled", "<i class='bx bx-layer-plus lg'></i> Dodaj do bazy"],
-    [canOverwrite ? "" : "disabled", "<i class='bx bx-layer lg'></i> Nadpisz w bazie..."],
-    [prevSubject ? "" : "disabled", "<i class='bx bx-undo lg'></i> Przywróć poprzedni"],
-    [canPaste ? "" : "disabled", "<i class='bx bx-paste lg'></i> Wklej" + I_O + clipboard + I_C],
-    "<i class='bx bx-import lg'></i> Wklej z bazy...",
-  ]).then((index) => {
-    switch (index) {
-      case 1:
-        if (canCopy) {
-          clipboard = subject;
-        }
-        break;
+  const newIndex = await selectDialog(ATTENDANCE, index);
+  const attendance = ATTEND_VAL[newIndex];
+  $input.val(attendance || "");
+  _setSelDlgItem($button, ATTENDANCE[newIndex]);
+  if (newIndex !== index) {
+    switch (attendance) {
       case 2:
-        if (canAdd) {
-          SubjectBase.add(subject);
-        }
+        _setTopic($input, TopicBase.getAbsence(0));
         break;
       case 3:
-        if (canOverwrite) {
-          SubjectBase.overwriteDialog(subject);
-        }
+        _setTopic($input, TopicBase.getAbsence(1));
         break;
       case 4:
-        if (prevSubject) {
-          _setSub($textarea, prevSubject);
-        }
-        break;
-      case 5:
-        if (canPaste) {
-          _setSub($textarea, clipboard);
-        }
+        _setTopic($input, TopicBase.getAbsence(2));
         break;
       case 6:
-        onPasteIconClick.call($textarea.get(0));
+        _setTopic($input, TopicBase.getAbsence(3));
+        break;
+      case 8:
+        _setTopic($input, TopicBase.getAbsence(4));
         break;
     }
-  });
+    $button.trigger("focus").closest("div.lesson").data("attendMod", true);
+  }
 }
 
-function onPasteIconClick() {
+async function onTopicMenuClick() {
+  const I_O = ' <i class="condensed muted">',
+    I_C = "</i>";
   const $lesson = $(this).closest("div.lesson");
-  const caption = "Wklej temat zajęć (" + $("input[name='time']", $lesson).val() + ")";
-  SubjectBase.dialog(["caption-green", caption])
-    .then((index) => {
-      _setSub($lesson, SubjectBase.get(index));
-    })
-    .catch(nop);
+  const $textarea = $lesson.find("textarea");
+  const topic = $textarea.val(),
+    prevTopic = $textarea.data("prev-topic");
+  const canCopy = topic.length && topic !== clipboard,
+    canPaste = clipboard.length && clipboard !== topic,
+    canAdd = TopicBase.canAdd(topic),
+    canOverwrite = canAdd && TopicBase.getLength();
+  const options = [
+    ["caption-green", "Menu tematu"],
+    [canCopy ? "" : "disabled", "<i class='bx bx-copy-alt lg'></i> Kopiuj" + I_O + topic + I_C],
+    [canAdd ? "" : "disabled", "<i class='bx bx-layer-plus lg'></i> Dodaj do bazy"],
+    [canOverwrite ? "" : "disabled", "<i class='bx bx-layer lg'></i> Nadpisz w bazie..."],
+    [prevTopic ? "" : "disabled", "<i class='bx bx-undo lg'></i> Przywróć poprzedni"],
+    [canPaste ? "" : "disabled", "<i class='bx bx-paste lg'></i> Wklej" + I_O + clipboard + I_C],
+    "<i class='bx bx-import lg'></i> Wklej z bazy...",
+  ];
+  switch (await selectDialog(options)) {
+    case 1:
+      if (canCopy) {
+        clipboard = topic;
+      }
+      break;
+    case 2:
+      if (canAdd) {
+        TopicBase.add(topic, $lesson.find("[name='subject']").val());
+      }
+      break;
+    case 3:
+      if (canOverwrite) {
+        TopicBase.overwriteDialog(topic);
+      }
+      break;
+    case 4:
+      if (prevTopic) {
+        _setTopic($textarea, prevTopic);
+      }
+      break;
+    case 5:
+      if (canPaste) {
+        _setTopic($textarea, clipboard);
+      }
+      break;
+    case 6:
+      onPasteIconClick.call($textarea.get(0));
+      break;
+  }
+}
+
+async function onPasteIconClick() {
+  const $lesson = $(this).closest("div.lesson");
+  const caption = "Wyszukaj temat zajęć (" + $("input[name='time']", $lesson).val() + ")";
+  const result = await searchDialog(
+    caption,
+    async (query, update) => {
+      update([{ html: '<div class="lds-dual-ring"></div>Proszę czekać...' }]);
+      try {
+        const result = await rfCall("topicBaseFind", query);
+        if (!result.length) {
+          throw new Error("Brak pasujących wyników");
+        }
+        update(result.map((item) => ({ class: "condensed", html: item.content, value: item })));
+      } catch (error) {
+        update([{ html: error.message }]);
+      }
+    },
+    TopicBase.getItems().map((item) => ({ class: "condensed", html: item.content, value: item }))
+  );
+  if (result) {
+    _setTopic($lesson, result.content);
+    TopicBase.join(result);
+  }
 }
 
 function getLessonFromElement(htmlElm) {
   htmlElm = $(htmlElm).closest("div.lesson");
   return {
-    subjectMod: htmlElm.data("subjectMod"),
+    topicMod: htmlElm.data("topicMod"),
     attendMod: htmlElm.data("attendMod"),
-    subjectPrms: $("[name='subjectPrms']", htmlElm).val().split("|"),
+    topicPrms: $("[name='topicPrms']", htmlElm).val().split("|"),
     timePrms: $("[name='timePrms']", htmlElm).val().split("|"),
     time: $("[name='time']", htmlElm).val(),
-    studentName: $("[name='studentName']", htmlElm).val(),
-    name: $("[name='name']", htmlElm).val(),
+    student: $("[name='student']", htmlElm).val(),
+    subject: $("[name='subject']", htmlElm).val(),
     attendPrms: $("[name='attendPrms']", htmlElm).val().split("|"),
     attendance: $("[name='attendance']", htmlElm).val(),
-    subject: $("[name='subject']", htmlElm).val(),
+    topic: $("[name='topic']", htmlElm).val(),
   };
 }
 
@@ -206,8 +219,8 @@ function _buildNavigationBar(lesson) {
         tabindex: -1,
         maxlength: 0,
         autocomplete: "off",
-      }).focus(function () {
-        $("button", $(this).parent()).focus();
+      }).on("focus", function () {
+        $("button", $(this).parent()).trigger("focus");
       }),
       _setSelDlgItem(
         $("<button/>", { type: "button", class: "attendance bg-white" }).on(
@@ -220,11 +233,11 @@ function _buildNavigationBar(lesson) {
     $("<button/>", { type: "button", class: "name bg-white" })
       .append([
         $("<div>", { class: "menu-icon" }).html("<i class='bx bx-menu lg' ></i>"),
-        $("<b/>").text(lesson.studentName),
+        $("<b/>").text(lesson.student),
         document.createTextNode(" "),
-        $("<span/>", { class: "smaller" }).text(lesson.name),
+        $("<span/>", { class: "smaller" }).text(lesson.subject),
       ])
-      .on("click", onSubjectMenuClick),
+      .on("click", onTopicMenuClick),
   ]);
 }
 
@@ -232,21 +245,21 @@ self.buildElements = function (lessons) {
   return lessons.map((lesson, index) => {
     return $("<div>", { class: "lesson" })
       .append([
-        $("<input/>", { type: "hidden", name: "subjectPrms", value: lesson.subjectPrms.join("|") }),
+        $("<input/>", { type: "hidden", name: "topicPrms", value: lesson.topicPrms.join("|") }),
         $("<input/>", { type: "hidden", name: "timePrms", value: lesson.timePrms.join("|") }),
         $("<input/>", { type: "hidden", name: "time", value: lesson.time }),
-        $("<input/>", { type: "hidden", name: "studentName", value: lesson.studentName }),
-        $("<input/>", { type: "hidden", name: "name", value: lesson.name }),
+        $("<input/>", { type: "hidden", name: "student", value: lesson.student }),
+        $("<input/>", { type: "hidden", name: "subject", value: lesson.subject }),
         $("<input/>", { type: "hidden", name: "attendPrms", value: lesson.attendPrms.join("|") }),
         _buildNavigationBar(lesson),
         $("<textarea/>", {
-          class: "subject condensed",
-          name: "subject",
+          class: "topic condensed",
+          name: "topic",
           placeholder: "Wprowadź temat zajęć",
           required: true,
           rows: 2,
         })
-          .text(lesson.subject)
+          .text(lesson.topic)
           .on("focus", function () {
             $(this)
               .css({ height: "6.7em" })
@@ -259,20 +272,20 @@ self.buildElements = function (lessons) {
             const $textarea = $(this),
               $lesson = $textarea.closest("div.lesson");
             const $input = $(".attendance input", $lesson);
-            if (!parseInt($input.val()) && SubjectBase.indexOfAbsence($textarea.val()) === -1) {
+            if (!parseInt($input.val()) && TopicBase.indexOfAbsence($textarea.val()) === -1) {
               $input.val(1);
               _setSelDlgItem($(".attendance button", $lesson), ATTENDANCE[1]);
               $lesson.data("attendMod", true);
             }
           })
           .one("input", function () {
-            $(this).closest("div.lesson").data("subjectMod", true);
+            $(this).closest("div.lesson").data("topicMod", true);
           }),
         $("<button>", { class: "paste-icon", type: "button" })
           .html("<i class='bx bx-import lg'></i>")
           .on("click", onPasteIconClick),
       ])
-      .data("subjectMod", lesson.subjectMod)
+      .data("topicMod", lesson.topicMod)
       .data("attendMod", lesson.attendMod);
   });
 };
@@ -283,11 +296,11 @@ self.collectLessons = (filterForSaving) => {
   $("form.save-day div.lesson").each(function () {
     const lesson = getLessonFromElement(this);
     if (filterForSaving) {
-      if (!(lesson.attendance && lesson.subject)) {
+      if (!(lesson.attendance && lesson.topic)) {
         // skip not filled
         return;
       }
-      if (!(lesson.attendMod || lesson.subjectMod)) {
+      if (!(lesson.attendMod || lesson.topicMod)) {
         // skip and remove not modified
         filterRejection = true;
         return DayView.removeElement(this);
